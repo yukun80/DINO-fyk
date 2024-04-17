@@ -1,7 +1,3 @@
-"""
-PyTorch Lightning 是一个独立于 PyTorch 的库，提供了许多便利的功能来简化深度学习模型的训练，其中包括设置随机种子以确保实验可复现。
-OmegaConf是一个基于YAML的层次化配置系统，支持从多个来源（如文件、命令行参数、环境变量）合并配置
-"""
 from data import ContrastiveSegDataset
 from utils import ToTargetTensor, prep_args
 import os
@@ -20,21 +16,6 @@ os.environ["HYDRA_FULL_ERROR"] = "1"
 
 
 def _random_crops(img, size, seed, n):
-    """自定义函数：将传入的图像进行四角裁剪和中心裁剪
-    如果img是torch张量， 维度应满足[..., H, W]，其中...表示任意数量的维度
-    .. note::
-        这个转换会返回一个图像元组，输入和目标数据集的数量可能不匹配
-    Args:
-        img (PIL Image or Tensor): 需要裁剪的图像
-        size (sequence or int): 期望的输出尺寸
-            如果size是int，输出尺寸将是正方形(size, size)。
-            如果size是sequence，输出尺寸将是(size[0], size[1])。
-        seed (int): 随机种子
-        n (int): 裁剪数量
-    Returns:
-        tuple: 裁剪后的图像元组tuple (tl, tr, bl, br, center)
-                对应左上角、右上角、左下角、右下角和中心裁剪
-    """
     if isinstance(size, int):
         size = (int(size), int(size))
     elif isinstance(size, (tuple, list)) and len(size) == 1:
@@ -63,7 +44,7 @@ def _random_crops(img, size, seed, n):
 
 class RandomCropComputer(Dataset):
     def _get_size(self, img):
-        # print("++++++++++++++++++++++++++img.shape:", img.shape)
+        print("++++++++++++++++++++++++++img.shape:", img.shape)
         if len(img.shape) == 3:
             return [int(img.shape[1] * self.crop_ratio), int(img.shape[2] * self.crop_ratio)]
         elif len(img.shape) == 2:
@@ -123,33 +104,13 @@ class RandomCropComputer(Dataset):
         )
 
     def __getitem__(self, item):
-        """该方法从数据集中获取一个元素（一组图像和标签），将它们转换为JPEG和PNG格式并保存。"""
         batch = self.dataset[item]
         imgs = batch["img"]
         labels = batch["label"]
         for crop_num, (img, label) in enumerate(zip(imgs, labels)):
-            """img_num = item * 5 + crop_num:
-            假设每个 item 包含5个裁剪图像，所以使用 item * 5 来确定起始编号，crop_num 用于为这五个裁剪图中的每一个提供唯一的序号。
-            """
             img_num = item * 5 + crop_num
-            """
-            将图像张量（预期为0到1的浮点数）转换为0到255的整数范围，适用于JPEG格式的保存。
-            permute(1, 2, 0) 调整维度顺序以适配 PIL 和 NumPy 的图像格式（从通道优先变为高宽优先）。
-            最后将数据移动到 CPU 并转换为 numpy 数组。
-            """
             img_arr = img.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to("cpu", torch.uint8).numpy()
-            """对标签进行处理，通常标签张量是单通道的。这里首先将标签的值增加1（可能用于调整标签值的范围），
-            然后增加一个新的维度，调整维度顺序，并转换为 numpy 数组。squeeze(-1) 用于移除单维度条目，最终形成二维数组。
-            """
-            # print("Original label shape:", label.shape)
-            # label = label + 1
-            # print("After adding 1:", label.shape)
-            # label = label.unsqueeze(0)
-            # print("After unsqueeze:", label.shape)
-            # label = label.permute(1, 2, 0)
-            # print("After permute:", label.shape)
-
-            label_arr = (label + 1).permute(1, 2, 0).to("cpu", torch.uint8).numpy().squeeze(-1)
+            label_arr = (label + 1).unsqueeze(0).permute(1, 2, 0).to("cpu", torch.uint8).numpy().squeeze(-1)
             Image.fromarray(img_arr).save(os.path.join(self.img_dir, "{}.jpg".format(img_num)), "JPEG")
             Image.fromarray(label_arr).save(os.path.join(self.label_dir, "{}.png".format(img_num)), "PNG")
         return True
@@ -161,7 +122,6 @@ class RandomCropComputer(Dataset):
 @hydra.main(config_path="configs", config_name="train_config.yaml", version_base="1.1")
 def my_app(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
-    """这里的 workers=True 表示也为数据加载器的工作进程设置随机种子。"""
     seed_everything(seed=0, workers=True)
 
     dataset_names = ["directory"]
