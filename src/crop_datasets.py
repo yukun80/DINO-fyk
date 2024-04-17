@@ -2,8 +2,6 @@
 PyTorch Lightning 是一个独立于 PyTorch 的库，提供了许多便利的功能来简化深度学习模型的训练，其中包括设置随机种子以确保实验可复现。
 OmegaConf是一个基于YAML的层次化配置系统，支持从多个来源（如文件、命令行参数、环境变量）合并配置
 """
-from data import ContrastiveSegDataset
-from utils import ToTargetTensor, prep_args
 import os
 import torch
 from PIL import Image
@@ -14,6 +12,9 @@ from torchvision.transforms.functional import five_crop, get_image_size, crop
 from tqdm import tqdm
 import hydra
 from omegaconf import DictConfig, OmegaConf
+
+from data import ContrastiveSegDataset
+from utils import ToTargetTensor, prep_args
 
 # 设置环境变量
 os.environ["HYDRA_FULL_ERROR"] = "1"
