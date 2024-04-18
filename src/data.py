@@ -15,6 +15,33 @@ from torchvision.transforms.functional import to_pil_image
 from tqdm import tqdm
 
 
+def bit_get(val, idx):
+    """Gets the bit value.
+    Args:
+      val: Input value, int or numpy int array.
+      idx: Which bit of the input val.
+    Returns:
+      The "idx"-th bit of input val.
+    """
+    return (val >> idx) & 1
+
+
+def create_pascal_label_colormap():
+    """Creates a label colormap used in PASCAL VOC segmentation benchmark.
+    Returns:
+      A colormap for visualizing segmentation results.
+    """
+    colormap = np.zeros((512, 3), dtype=int)
+    ind = np.arange(512, dtype=int)
+
+    for shift in reversed(list(range(8))):
+        for channel in range(3):
+            colormap[:, channel] |= bit_get(ind, channel) << shift
+        ind >>= 3
+
+    return colormap
+
+
 class DirectoryDataset(Dataset):
     def __init__(self, root, path, image_set, transform, target_transform):
         super(DirectoryDataset, self).__init__()
